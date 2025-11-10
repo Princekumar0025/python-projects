@@ -1,0 +1,248 @@
+import os
+import shutil
+
+def display_menu(current_dir):
+    """Prints the main menu and the current directory."""
+    print(f"\n--- Simple File Manager ---")
+    print(f"Current Directory: {current_dir}")
+    print("---------------------------")
+    print("1. List Directory Contents")
+    print("2. Create Directory")
+    print("3. Create File")
+    print("4. Read File")
+    print("5. Write to File (Overwrite)")
+    print("6. Rename File/Directory")
+    print("7. Delete File/Directory")
+    print("8. Copy File/Directory")
+    print("9. Change Directory (cd)")
+    print("0. Exit")
+    print("---------------------------")
+
+def list_contents(directory):
+    """Lists files and directories in the given directory."""
+    print(f"\nContents of '{directory}':")
+    try:
+        items = os.listdir(directory)
+        if not items:
+            print("  (Directory is empty)")
+            return
+            
+        for item in items:
+            item_path = os.path.join(directory, item)
+            item_type = "[Dir]" if os.path.isdir(item_path) else "[File]"
+            print(f"  {item_type.ljust(6)} {item}")
+            
+    except FileNotFoundError:
+        print(f"Error: Directory not found: {directory}")
+    except PermissionError:
+        print(f"Error: Permission denied for: {directory}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def create_directory(path):
+    """Creates a new directory at the specified path."""
+    try:
+        os.makedirs(path, exist_ok=True) # exist_ok=True prevents error if dir already exists
+        print(f"\nDirectory created: {path}")
+    except PermissionError:
+        print(f"Error: Permission denied. Could not create: {path}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def create_file(path):
+    """Creates a new, empty file at the specified path."""
+    try:
+        with open(path, 'w') as f:
+            pass  # Just create the file
+        print(f"\nFile created: {path}")
+    except PermissionError:
+        print(f"Error: Permission denied. Could not create: {path}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def read_file(path):
+    """Reads and prints the contents of a file."""
+    try:
+        with open(path, 'r') as f:
+            content = f.read()
+            print(f"\n--- Content of {path} ---")
+            print(content)
+            print("---------------------------------")
+    except FileNotFoundError:
+        print(f"Error: File not found: {path}")
+    except PermissionError:
+        print(f"Error: Permission denied for: {path}")
+    except IsADirectoryError:
+        print(f"Error: Cannot read a directory: {path}")
+    except UnicodeDecodeError:
+        print(f"Error: Cannot read file (not plain text or wrong encoding).")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def write_to_file(path):
+    """Writes user-provided content to a file, overwriting existing content."""
+    try:
+        print("\nEnter content. Type 'EOF' on a new line to save and exit.")
+        content = []
+        while True:
+            line = input()
+            if line == "EOF":
+                break
+            content.append(line)
+        
+        with open(path, 'w') as f:
+            f.write("\n".join(content))
+        print(f"\nContent written to: {path}")
+    except PermissionError:
+        print(f"Error: Permission denied. Could not write to: {path}")
+    except IsADirectoryError:
+        print(f"Error: Cannot write to a directory: {path}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def rename_item(current_dir):
+    """Renames a file or directory."""
+    try:
+        old_name = input("Enter current name (relative to current dir): ")
+        new_name = input("Enter new name (relative to current dir): ")
+        
+        old_path = os.path.join(current_dir, old_name)
+        new_path = os.path.join(current_dir, new_name)
+        
+        if not os.path.exists(old_path):
+            print(f"Error: Item not found: {old_path}")
+            return
+            
+        os.rename(old_path, new_path)
+        print(f"\nRenamed: {old_path} -> {new_path}")
+    except PermissionError:
+        print(f"Error: Permission denied.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def delete_item(current_dir):
+    """Deletes a file or directory (recursively for directories)."""
+    try:
+        name = input("Enter name of file/dir to delete: ")
+        path_to_delete = os.path.join(current_dir, name)
+
+        if not os.path.exists(path_to_delete):
+            print(f"Error: Item not found: {path_to_delete}")
+            return
+
+        # Ask for confirmation
+        confirm = input(f"Are you sure you want to delete '{path_to_delete}'? (y/n): ").lower()
+        if confirm != 'y':
+            print("Deletion cancelled.")
+            return
+
+        if os.path.isdir(path_to_delete):
+            shutil.rmtree(path_to_delete)
+            print(f"\nDirectory (and all contents) deleted: {path_to_delete}")
+        else:
+            os.remove(path_to_delete)
+            print(f"\nFile deleted: {path_to_delete}")
+            
+    except FileNotFoundError:
+        print(f"Error: Item not found: {path_to_delete}")
+    except PermissionError:
+        print(f"Error: Permission denied.")
+    except OSError as e:
+        print(f"Error: Could not delete (e.g., directory not empty?): {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def copy_item(current_dir):
+    """Copies a file or directory."""
+    try:
+        src_name = input("Enter source name: ")
+        dest_name = input("Enter destination name: ")
+        
+        src_path = os.path.join(current_dir, src_name)
+        dest_path = os.path.join(current_dir, dest_name)
+
+        if not os.path.exists(src_path):
+            print(f"Error: Source not found: {src_path}")
+            return
+
+        if os.path.isdir(src_path):
+            shutil.copytree(src_path, dest_path)
+            print(f"\nDirectory copied: {src_path} -> {dest_path}")
+        else:
+            shutil.copy2(src_path, dest_path) # copy2 preserves metadata
+            print(f"\nFile copied: {src_path} -> {dest_path}")
+
+    except FileExistsError:
+        print(f"Error: Destination already exists: {dest_path}")
+    except PermissionError:
+        print(f"Error: Permission denied.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def change_directory(current_dir):
+    """Changes the current working directory."""
+    new_dir_name = input("Enter directory name (or '..' to go up): ")
+    
+    # Handle '..' for parent directory
+    if new_dir_name == "..":
+        new_path = os.path.dirname(current_dir)
+    else:
+        new_path = os.path.join(current_dir, new_dir_name)
+        
+    if os.path.isdir(new_path):
+        # os.chdir(new_path) # This would change the script's actual CWD
+        # For this app, we just track it in a variable
+        print(f"Changed directory to: {new_path}")
+        return os.path.abspath(new_path) # Return the new, absolute path
+    else:
+        print(f"Error: Directory not found: {new_path}")
+        return current_dir # Return the old directory
+
+def main():
+    """Main function to run the file manager loop."""
+    current_dir = os.path.abspath(os.getcwd()) # Start in the script's directory
+
+    while True:
+        display_menu(current_dir)
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            list_contents(current_dir)
+        
+        elif choice == '2':
+            name = input("Enter new directory name: ")
+            create_directory(os.path.join(current_dir, name))
+            
+        elif choice == '3':
+            name = input("Enter new file name: ")
+            create_file(os.path.join(current_dir, name))
+            
+        elif choice == '4':
+            name = input("Enter file name to read: ")
+            read_file(os.path.join(current_dir, name))
+            
+        elif choice == '5':
+            name = input("Enter file name to write to: ")
+            write_to_file(os.path.join(current_dir, name))
+            
+        elif choice == '6':
+            rename_item(current_dir)
+            
+        elif choice == '7':
+            delete_item(current_dir)
+            
+        elif choice == '8':
+            copy_item(current_dir)
+            
+        elif choice == '9':
+            current_dir = change_directory(current_dir)
+            
+        elif choice == '0':
+            print("\nExiting file manager. Goodbye!")
+            break
+            
+        else:
+            print("\nInvalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main()
